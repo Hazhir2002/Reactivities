@@ -1,3 +1,4 @@
+using API.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Persistence;
 
@@ -16,20 +17,8 @@ namespace API
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
 
-            builder.Services.AddDbContext<DataContext>(option =>
-            {
-                option.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
-            });
-
-            builder.Services.AddCors(opt =>
-            {
-                opt.AddPolicy("CorsPolicy", policy =>
-                {
-                    policy.AllowAnyMethod().AllowAnyHeader().WithOrigins("http://localhost:3000");
-                });
-            });
+            builder.Services.AddApplicationServices(builder.Configuration);
 
             var app = builder.Build();
 
