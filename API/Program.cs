@@ -1,7 +1,11 @@
 using API.Extensions;
 using API.Middleware;
 using Application.Activities;
+using Domain;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Persistence;
 
@@ -17,7 +21,12 @@ namespace API
 
             // Add services to the container.
 
-            builder.Services.AddControllers().AddFluentValidation(config =>
+            builder.Services.AddControllers(opt =>
+            {
+                // add authorization to every controller unless we tell it otherwise
+                var policy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+                opt.Filters.Add(new AuthorizeFilter(policy));
+            }).AddFluentValidation(config =>
             {
                 config.RegisterValidatorsFromAssemblyContaining<Create>();
             });
@@ -26,6 +35,7 @@ namespace API
             builder.Services.AddEndpointsApiExplorer();
 
             builder.Services.AddApplicationServices(builder.Configuration);
+            builder.Services.AddIdentityServices(builder.Configuration);
 
             var app = builder.Build();
 
@@ -36,8 +46,9 @@ namespace API
             try
             {
                 var context = services.GetRequiredService<DataContext>();
+                var userManager = services.GetRequiredService<UserManager<AppUser>>();
                 await context.Database.MigrateAsync();
-                await Seed.SeedData(context);
+                await Seed.SeedData(context, userManager);
             }
             catch (Exception ex)
             {
@@ -53,11 +64,13 @@ namespace API
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+            
 
             //app.UseHttpsRedirection();
 
             app.UseCors("CorsPolicy");
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
 
